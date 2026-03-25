@@ -322,11 +322,12 @@ class Dataset_M4(Dataset):
             dataset = M4Dataset.load(training=True, dataset_file=self.root_path)
         else:
             dataset = M4Dataset.load(training=False, dataset_file=self.root_path)
-        training_values = np.array(
-            [v[~np.isnan(v)] for v in
-             dataset.values[dataset.groups == self.seasonal_patterns]])  # split different frequencies
-        self.ids = np.array([i for i in dataset.ids[dataset.groups == self.seasonal_patterns]])
-        self.timeseries = [ts for ts in training_values]
+        pattern_mask = dataset.groups == self.seasonal_patterns
+        # Keep variable-length time series as a Python list for compatibility
+        # across numpy versions.
+        training_values = [v[~np.isnan(v)] for v in dataset.values[pattern_mask]]
+        self.ids = np.array([i for i in dataset.ids[pattern_mask]])
+        self.timeseries = training_values
 
     def __getitem__(self, index):
         insample = np.zeros((self.seq_len, 1))

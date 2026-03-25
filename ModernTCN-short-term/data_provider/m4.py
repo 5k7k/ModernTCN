@@ -89,13 +89,39 @@ class M4Dataset:
         train_cache_file = os.path.join(dataset_file, 'training.npz')
         test_cache_file = os.path.join(dataset_file, 'test.npz')
         m4_info = pd.read_csv(info_file)
-        return M4Dataset(ids=m4_info.M4id.values,
-                         groups=m4_info.SP.values,
-                         frequencies=m4_info.Frequency.values,
-                         horizons=m4_info.Horizon.values,
-                         values=np.load(
-                             train_cache_file if training else test_cache_file,
-                             allow_pickle=True))
+        cache_file = train_cache_file if training else test_cache_file
+        loaded = np.load(cache_file, allow_pickle=True)
+
+        # Compatible with multiple M4 cache layouts:
+        # 1) structured npz with keys: values/ids/groups/frequencies/horizons
+        # 2) legacy single-array npz (e.g. arr_0)
+        if isinstance(loaded, np.lib.npyio.NpzFile):
+            cache_keys = set(loaded.files)
+            if 'values' in cache_keys:
+                values = loaded['values']
+                ids = loaded['ids'] if 'ids' in cache_keys else m4_info.M4id.values
+                groups = loaded['groups'] if 'groups' in cache_keys else m4_info.SP.values
+                frequencies = loaded['frequencies'] if 'frequencies' in cache_keys else m4_info.Frequency.values
+                horizons = loaded['horizons'] if 'horizons' in cache_keys else m4_info.Horizon.values
+            else:
+                first_key = loaded.files[0]
+                values = loaded[first_key]
+                ids = m4_info.M4id.values
+                groups = m4_info.SP.values
+                frequencies = m4_info.Frequency.values
+                horizons = m4_info.Horizon.values
+        else:
+            values = loaded
+            ids = m4_info.M4id.values
+            groups = m4_info.SP.values
+            frequencies = m4_info.Frequency.values
+            horizons = m4_info.Horizon.values
+
+        return M4Dataset(ids=ids,
+                         groups=groups,
+                         frequencies=frequencies,
+                         horizons=horizons,
+                         values=values)
 
 
 @dataclass()

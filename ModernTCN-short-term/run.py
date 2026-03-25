@@ -1,6 +1,7 @@
 import argparse
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+import sys
 
 import torch
 
@@ -12,6 +13,11 @@ import numpy as np
 from utils.str2bool import str2bool
 
 parser = argparse.ArgumentParser(description='ModernTCN')
+SUPPORTED_MODELS = ['ModernTCN', 'PatchTST']
+MODEL_ALIASES = {
+    'moderntcn': 'ModernTCN',
+    'patchtst': 'PatchTST',
+}
 
 # random seed
 parser.add_argument('--random_seed', type=int, default=2021, help='random seed')
@@ -20,7 +26,7 @@ parser.add_argument('--random_seed', type=int, default=2021, help='random seed')
 parser.add_argument('--is_training', type=int, required=True, default=1, help='status')
 parser.add_argument('--model_id', type=str, required=True, default='test', help='model id')
 parser.add_argument('--model', type=str, required=True, default='ModernTCN',
-                    help='model name, options: [ModernTCN]')
+                    help='model name, options: [ModernTCN, PatchTST]')
 
 # data loader
 parser.add_argument('--data', type=str, required=True, default='ETTm1', help='dataset type')
@@ -130,8 +136,42 @@ parser.add_argument('--anomaly_ratio', type=float, default=0.25, help='prior ano
 parser.add_argument('--class_dropout', type=float, default=0.05, help='classfication dropout')
 
 
+def _get_user_provided_flags():
+    flags = set()
+    for token in sys.argv[1:]:
+        if token.startswith('--'):
+            flags.add(token[2:].split('=')[0])
+    return flags
+
+
+def _normalize_model_name(model_name):
+    model_key = model_name.strip()
+    model_key_lower = model_key.lower()
+    if model_key_lower in MODEL_ALIASES:
+        return MODEL_ALIASES[model_key_lower]
+    return model_key
+
+
+def _sync_model_patch_args(args_obj, user_flags):
+    if args_obj.model == 'PatchTST':
+        if 'patch_len' not in user_flags and 'patch_size' in user_flags:
+            args_obj.patch_len = args_obj.patch_size
+        if 'stride' not in user_flags and 'patch_stride' in user_flags:
+            args_obj.stride = args_obj.patch_stride
+    elif args_obj.model == 'ModernTCN':
+        if 'patch_size' not in user_flags and 'patch_len' in user_flags:
+            args_obj.patch_size = args_obj.patch_len
+        if 'patch_stride' not in user_flags and 'stride' in user_flags:
+            args_obj.patch_stride = args_obj.stride
+
+
 
 args = parser.parse_args()
+user_flags = _get_user_provided_flags()
+args.model = _normalize_model_name(args.model)
+if args.model not in SUPPORTED_MODELS:
+    raise ValueError('Unsupported model: {}. Available models: {}'.format(args.model, SUPPORTED_MODELS))
+_sync_model_patch_args(args, user_flags)
 
 
 fix_seed = args.random_seed

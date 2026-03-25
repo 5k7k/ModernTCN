@@ -1,7 +1,7 @@
 import os
 import torch
 
-from models import ModernTCN
+from models import ModernTCN, PatchTST
 
 
 class Exp_Basic(object):
@@ -9,9 +9,12 @@ class Exp_Basic(object):
         self.args = args
         self.model_dict = {
             'ModernTCN':ModernTCN,
-
+            'PatchTST':PatchTST,
 
         }
+        if self.args.model not in self.model_dict:
+            raise ValueError('Unsupported model: {}. Available models: {}'.format(
+                self.args.model, list(self.model_dict.keys())))
         self.device = self._acquire_device()
         self.model = self._build_model().to(self.device)
 
