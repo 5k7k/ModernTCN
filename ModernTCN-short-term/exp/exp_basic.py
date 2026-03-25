@@ -1,7 +1,7 @@
 import os
 import torch
 
-from models import ModernTCN, PatchTST
+from models import ModernTCN, PatchTST, TimeMixer
 
 
 class Exp_Basic(object):
@@ -10,6 +10,7 @@ class Exp_Basic(object):
         self.model_dict = {
             'ModernTCN':ModernTCN,
             'PatchTST':PatchTST,
+            'TimeMixer':TimeMixer,
 
         }
         if self.args.model not in self.model_dict:

@@ -13,10 +13,11 @@ import numpy as np
 from utils.str2bool import str2bool
 
 parser = argparse.ArgumentParser(description='ModernTCN')
-SUPPORTED_MODELS = ['ModernTCN', 'PatchTST']
+SUPPORTED_MODELS = ['ModernTCN', 'PatchTST', 'TimeMixer']
 MODEL_ALIASES = {
     'moderntcn': 'ModernTCN',
     'patchtst': 'PatchTST',
+    'timemixer': 'TimeMixer',
 }
 
 # random seed
@@ -26,7 +27,7 @@ parser.add_argument('--random_seed', type=int, default=2021, help='random seed')
 parser.add_argument('--is_training', type=int, required=True, default=1, help='status')
 parser.add_argument('--model_id', type=str, required=True, default='test', help='model id')
 parser.add_argument('--model', type=str, required=True, default='ModernTCN',
-                    help='model name, options: [ModernTCN, PatchTST]')
+                    help='model name, options: [ModernTCN, PatchTST, TimeMixer]')
 
 # data loader
 parser.add_argument('--data', type=str, required=True, default='ETTm1', help='dataset type')
@@ -78,6 +79,16 @@ parser.add_argument('--subtract_last', type=int, default=0, help='0: subtract me
 parser.add_argument('--decomposition', type=int, default=0, help='decomposition; True 1 False 0')
 parser.add_argument('--kernel_size', type=int, default=25, help='decomposition-kernel')
 parser.add_argument('--individual', type=int, default=0, help='individual head; True 1 False 0')
+
+# TimeMixer
+parser.add_argument('--down_sampling_layers', type=int, default=1, help='number of down-sampling layers')
+parser.add_argument('--down_sampling_window', type=int, default=2, help='down-sampling window size')
+parser.add_argument('--down_sampling_method', type=str, default='avg', help='down-sampling method: [avg, max, conv]')
+parser.add_argument('--channel_independence', type=int, default=0, help='channel_independence; 1 means channel-wise modeling')
+parser.add_argument('--decomp_method', type=str, default='moving_avg', help='decomposition method: [moving_avg, dft_decomp]')
+parser.add_argument('--top_k', type=int, default=5, help='top_k for DFT decomposition')
+parser.add_argument('--use_norm', type=int, default=1, help='use normalization in TimeMixer; 1/0')
+parser.add_argument('--use_future_temporal_feature', type=int, default=0, help='use future temporal feature; 1/0')
 
 # Formers
 parser.add_argument('--embed_type', type=int, default=0, help='0: default 1: value embedding + temporal embedding + positional embedding 2: value embedding + temporal embedding 3: value embedding + positional embedding 4: value embedding')
@@ -163,6 +174,11 @@ def _sync_model_patch_args(args_obj, user_flags):
             args_obj.patch_size = args_obj.patch_len
         if 'patch_stride' not in user_flags and 'stride' in user_flags:
             args_obj.patch_stride = args_obj.stride
+    elif args_obj.model == 'TimeMixer':
+        if 'c_out' not in user_flags:
+            args_obj.c_out = args_obj.enc_in
+        if 'dec_in' not in user_flags:
+            args_obj.dec_in = args_obj.enc_in
 
 
 

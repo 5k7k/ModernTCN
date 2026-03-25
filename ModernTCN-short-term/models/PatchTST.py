@@ -32,10 +32,10 @@ class Model(nn.Module):
         fc_dropout = configs.fc_dropout
         head_dropout = configs.head_dropout
         
-        individual = configs.individual
-    
-        patch_len = configs.patch_len
-        stride = configs.stride
+        individual = bool(configs.individual)
+
+        patch_len = getattr(configs, 'patch_len', configs.patch_size)
+        stride = getattr(configs, 'stride', configs.patch_stride)
         padding_patch = configs.padding_patch
         
         revin = bool(configs.revin)
